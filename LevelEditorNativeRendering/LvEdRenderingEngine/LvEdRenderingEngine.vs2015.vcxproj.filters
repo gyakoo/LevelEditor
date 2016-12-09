@@ -381,6 +381,9 @@
     <ClInclude Include="GobSystem\SpinnerComponent.h">
       <Filter>GobSystem</Filter>
     </ClInclude>
+    <ClInclude Include="Model3d\ObjModelFactory.h">
+      <Filter>Model3d</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp" />
@@ -687,6 +690,9 @@
     </ClCompile>
     <ClCompile Include="GobSystem\SpinnerComponent.cpp">
       <Filter>GobSystem</Filter>
+    </ClCompile>
+    <ClCompile Include="Model3d\ObjModelFactory.cpp">
+      <Filter>Model3d</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

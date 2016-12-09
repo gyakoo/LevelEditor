@@ -36,6 +36,7 @@
 #include "Model3d/XmlModelFactory.h"
 #include "Model3d/AtgiModelFactory.h"
 #include "Model3d/ColladaModelFactory.h"
+#include "Model3d/ObjModelFactory.h"
 #include "ResourceManager/TextureFactory.h"
 #include "GobSystem/GameLevel.h"
 #include "GobSystem/SkyDome.h"
@@ -246,6 +247,7 @@ LVEDRENDERINGENGINE_API void __stdcall LvEd_Initialize(LogCallbackType logCallba
     ResourceManager * resMan = ResourceManager::Inst();
     AtgiModelFactory * atgiFactory = new AtgiModelFactory(gD3D11->GetDevice());
     ColladaModelFactory * colladaFactory = new ColladaModelFactory(gD3D11->GetDevice());    
+    ObjModelFactory * objFactory = new ObjModelFactory(gD3D11->GetDevice());
     TextureFactory * texFactory = new TextureFactory(gD3D11->GetDevice());
     resMan->RegisterListener(&s_engineData->resourceListener);    
     resMan->RegisterFactory(L".tga", texFactory);
@@ -256,6 +258,7 @@ LVEDRENDERINGENGINE_API void __stdcall LvEd_Initialize(LogCallbackType logCallba
     resMan->RegisterFactory(L".tif", texFactory);
     resMan->RegisterFactory(L".atgi", atgiFactory);
     resMan->RegisterFactory(L".dae", colladaFactory);
+    resMan->RegisterFactory(L".obj", objFactory);
 
     EngineInfo::InitInstance();
     const wchar_t* info = EngineInfo::Inst()->GetInfo();
@@ -1246,7 +1249,7 @@ EngineInfo::EngineInfo()
         
     // add supported 3d models.
     const wchar_t* modeltype = ResourceType::ToWString(ResourceType::Model);
-    AddResNode(doc,resNodes,modeltype,L"Model",L"3d model",L".atgi,.dae");
+    AddResNode(doc,resNodes,modeltype,L"Model",L"3d model",L".atgi,.dae,.obj");
         
     // add supported textures
     const wchar_t* textureType = ResourceType::ToWString(ResourceType::Texture);
