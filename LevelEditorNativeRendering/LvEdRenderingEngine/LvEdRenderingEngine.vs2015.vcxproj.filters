@@ -384,6 +384,9 @@
     <ClInclude Include="Model3d\ObjModelFactory.h">
       <Filter>Model3d</Filter>
     </ClInclude>
+    <ClInclude Include="Model3d\ObjParser.h">
+      <Filter>Model3d</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp" />
@@ -692,6 +695,9 @@
       <Filter>GobSystem</Filter>
     </ClCompile>
     <ClCompile Include="Model3d\ObjModelFactory.cpp">
+      <Filter>Model3d</Filter>
+    </ClCompile>
+    <ClCompile Include="Model3d\ObjParser.cpp">
       <Filter>Model3d</Filter>
     </ClCompile>
   </ItemGroup>

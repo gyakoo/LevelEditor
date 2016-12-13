@@ -192,6 +192,7 @@
     <ClInclude Include="Model3d\AtgiModelFactory.h" />
     <ClInclude Include="Model3d\ColladaModelFactory.h" />
     <ClInclude Include="Model3d\ObjModelFactory.h" />
+    <ClInclude Include="Model3d\ObjParser.h" />
     <ClInclude Include="Model3d\XmlModelFactory.h" />
     <ClInclude Include="Renderer\BasicRenderer.h" />
     <ClInclude Include="Renderer\BasicShader.h" />
@@ -318,6 +319,7 @@
     <ClCompile Include="Model3d\ColladaModelFactory.cpp" />
     <ClCompile Include="Model3d\Model3dBuilder.cpp" />
     <ClCompile Include="Model3d\ObjModelFactory.cpp" />
+    <ClCompile Include="Model3d\ObjParser.cpp" />
     <ClCompile Include="Model3d\XmlModelFactory.cpp" />
     <ClCompile Include="Model3d\rapidxmlhelpers.cpp" />
     <ClCompile Include="Renderer\BasicRenderer.cpp" />
