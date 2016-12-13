@@ -4,288 +4,48 @@
 #include "../ResourceManager/ResourceManager.h"
 #include "Model3dBuilder.h"
 #include "ObjModelFactory.h"
-#include <algorithm>
-#include <functional> 
-#include <cctype>
+#include "ObjParser.h"
+#include <locale>
+#include <codecvt>
 
 namespace LvEdEngine
 {
-    struct ObjParser
+
+    inline std::wstring ToWstring(const std::string& str)
     {
-        struct Vertex
-        {
-            float3 pos;
-            float3 normal;
-            float2 uv;
-        };
-
-        struct SubObj
-        {
-            std::vector<Vertex> m_vertexBuffer;
-#ifdef FORCE_16BIT_INDICES
-            std::vector<uint16_t> m_indexBuffer;
-#else
-            std::vector<uint32_t> m_indexBuffer;
-#endif
-            std::string m_name;
-            std::string m_material;
-        };
-
-        ObjParser(const std::vector<byte>& data);
-
-        std::vector<SubObj> m_objects;
-        std::string m_materialLib;
-    };
-
-    struct Group
-    {
-        size_t m_startFace;
-        size_t m_faceCount;
-        std::string m_usemtl;
-    };
-
-    static inline bool IsBlank(char c)
-    {
-        return c == ' ' || c == '\t' || c == '\r';
+        std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
+        return converter.from_bytes(str);
     }
 
-    static inline size_t FindNextBlank(const std::string& str, size_t ndx)
+    //
+    // Gets the full path without the last element
+    //
+    inline std::wstring StrExtractPath(const std::wstring& str)
     {
-        size_t i = ndx;
-        while (i < str.length() && !IsBlank(str[i]))
-            ++i;
-        return i;
-    }
-
-    static inline size_t ConsumeBlanks(const std::string& str, size_t ndx)
-    {
-        size_t i = ndx;
-        while (i < str.length() && IsBlank(str[i]))
-            ++i;
-        return i;
-    }
-
-    template<int N, typename V>
-    inline void ParseFloats(const std::string& str, V& out, size_t idx)
-    {
-        std::string subs;
-        size_t lastIdx = std::string::npos;
-        float* xyz = &out.x;
-        for (int i = 0; i < N; ++i)
+        auto p = str.find_last_of(L'/');
+        if (p == std::wstring::npos)
         {
-            idx = ConsumeBlanks(str, idx);
-            if (idx >= str.length()) break;
-            lastIdx = idx;
-            idx = FindNextBlank(str, idx);
-            if (lastIdx == idx) break;
-            subs = str.substr(lastIdx, idx - lastIdx);
-            xyz[i] = (float)::atof(subs.c_str());
+            p = str.find_last_of(L'\\');
+            if (p == std::wstring::npos)
+                return str;
         }
+        return str.substr(0, p);
     }
 
-    inline void ParseInts3(std::string& str, int32_t* outValues)
+    // 
+    // Gets the filename from path
+    // 
+    inline std::wstring StrExtractFilename(const std::wstring& str)
     {
-        size_t i[3];
-        i[0] = 0;
-        size_t _i = 1;
-        size_t count = str.length();
-        for (size_t j = 0; j < count; ++j)
+        auto p = str.find_last_of(L'/');
+        if (p == std::wstring::npos)
         {
-            if (str[j] == '/')
-            {
-                str[j] = 0;
-                i[_i++] = j + 1;
-            }
-        }
-        outValues[0] = ::atoi(str.c_str()) - 1;
-        outValues[1] = ::atoi(str.c_str() + i[1]) - 1;
-        outValues[2] = ::atoi(str.c_str() + i[2]) - 1;
-    }
-
-    template<typename T3, typename T2>
-    static inline bool ParseFace(const std::string& line, size_t idx, const T3& pos, const T3& nor, const T2& uv, std::vector<ObjParser::Vertex>& outVertices)
-    {
-        ObjParser::Vertex v;
-        int32_t indices[3];     // v, vt, vn
-        size_t lastNdx;
-        size_t count = 3;
-        for (int i = 0; i < count; ++i) // at least three vertices
-        {
-            idx = ConsumeBlanks(line, idx);
-            if (idx >= line.length()) break;
-            lastNdx = idx;
-            idx = FindNextBlank(line, idx);
-            std::string subs = line.substr(lastNdx, idx - lastNdx);
-            ParseInts3(subs, indices);
-            if (indices[0] < pos.size() && indices[2] < nor.size())
-            {
-                v.pos = pos[indices[0]];
-                if (indices[1] >= 0 && indices[1] < uv.size())
-                    v.uv = uv[indices[1]];
-                else
-                    v.uv.x = v.uv.y = 0.0f;
-                v.normal = nor[indices[2]];
-                if (i == 3) // it's a quad, triangulate fan
-                {
-                    if (outVertices.size() < 3)
-                        break; // some index was wrong
-
-                    outVertices.push_back(outVertices[0]);
-                    outVertices.push_back(outVertices[2]);
-                }
-                outVertices.push_back(v);
-            }
-            if (i >= 2 && idx < line.length())
-                ++count;
-        }
-        const size_t cv = outVertices.size();
-        return cv == 3 || cv == 6;
-    }
-
-
-    // trim from start
-    inline std::string &StrLtrim(std::string &s)
-    {
-        s.erase(s.begin(), std::find_if(s.begin(), s.end(),
-            std::not1(std::ptr_fun<int, int>(std::isspace))));
-        return s;
-    }
-
-    // trim from end
-    inline std::string &StrRtrim(std::string &s)
-    {
-        s.erase(std::find_if(s.rbegin(), s.rend(),
-            std::not1(std::ptr_fun<int, int>(std::isspace))).base(), s.end());
-        return s;
-    }
-
-    // trim from both ends
-    inline std::string &StrTrim(std::string &s)
-    {
-        return StrLtrim(StrRtrim(s));
-    }
-
-    inline bool GetLine(const std::vector<byte>& data, size_t& cur, std::string& outLine)
-    {
-        if (cur >= data.size()) return false;
-        outLine.clear();
-        char c;
-        while (cur < data.size() && (c = data[cur]) != '\n')
-        {
-            outLine += c;
-            ++cur;
+            p = str.find_last_of(L'\\');
+            if (p == std::wstring::npos)
+                return str;
         }
 
-        if (c == '\n')
-            ++cur;
-
-        StrTrim(outLine);
-        return cur <= data.size();
-    }
-
-    ObjParser::ObjParser(const std::vector<byte>& data)
-    {
-        std::vector<Group> groups;
-        std::vector<float3> positions;
-        std::vector<float3> normals;
-        std::vector<float2> texCoords;
-        std::vector<Vertex> tempVertices;
-        tempVertices.reserve(6);
-        size_t cur = 0;
-        std::string line;
-        line.reserve(512);
-        float3 _float3;
-        float2 _float2;
-        bool doneRecenter = false;
-        while (GetLine(data, cur, line))
-        {
-            if (line.empty()) continue;
-            switch (*line.begin())
-            {
-            case '#':
-                if (line.find_first_of("NORECENTER", 0) != std::string::npos)
-                    doneRecenter = true;
-                break;
-            case 'v':
-                switch (*(line.begin() + 1))
-                {
-                case ' ':
-                    ParseFloats<3, float3>(line, _float3, 2);
-                    positions.push_back(_float3);
-                    break;
-                case 'n':
-                    ParseFloats<3, float3>(line, _float3, 3);
-                    normals.push_back(_float3);
-                    break;
-                case 't':
-                    ParseFloats<2, float2>(line, _float2, 3);
-                    _float2.y = 1.0f - _float2.y;
-                    texCoords.push_back(_float2);
-                    break;
-                }
-                break;
-
-            case 'm':
-                m_materialLib = line.substr(7);
-                break;
-
-            case 'u':
-                m_objects.back().m_material = line.substr(7);
-                break;
-
-            case 'f':
-            {
-                // recenter
-                if (!doneRecenter)
-                {
-                    if (!positions.empty())
-                    {
-                        float3 com(0, 0, 0);
-                        for (const auto& p : positions) com += p;
-                        com *= 1.0f / positions.size();
-
-                        for (auto& p : positions)
-                            p = p - com;
-                    }
-                    doneRecenter = true;
-                }
-
-                tempVertices.clear();
-                if (ParseFace(line, 2, positions, normals, texCoords, tempVertices))
-                {
-                    auto& v = m_objects.back().m_vertexBuffer;
-                    v.insert(v.end(), tempVertices.begin(), tempVertices.end());
-                }
-            }break;
-
-            case 'g':
-            case 'o':
-            {
-                SubObj obj;
-                obj.m_name = line.substr(2);
-                m_objects.push_back(obj);
-            }break;
-            }
-        }
-
-        // prepare IBs (very simple, it's an expanded triangle soup)
-        for (auto& o : m_objects)
-        {
-#if defined(_DEBUG) && defined(FORCE_16BIT_INDICES)
-            if (o.m_vertexBuffer.size() >= (1 << 16))
-                throw Platform::Exception::CreateException(E_FAIL, L"This OBJ needs 32 bits IB. Only 16 bits supported. Will be truncated in RELEASE");
-#endif
-
-#ifdef FORCE_16BIT_INDICES
-            const size_t maxVerts = std::min(size_t((1 << 16) - 1), o.m_vertexBuffer.size());
-#else
-            const size_t maxVerts = o.m_vertexBuffer.size();
-#endif
-            auto& ib = o.m_indexBuffer;
-            ib.reserve(maxVerts);
-            for (size_t i = 0; i < maxVerts; ++i)
-                ib.push_back(i);
-        }
+        return str.substr(p + 1);
     }
 
     ObjModelFactory::ObjModelFactory(ID3D11Device* device)
@@ -315,9 +75,96 @@ namespace LvEdEngine
             memcpy(&vData[0], data, dataSize);
             SAFE_DELETE_ARRAY(data);
 
-            ObjParser parser(vData);
-            
-            
+            // let's parse OBJ
+            champ::ObjParser parser(vData);
+            champ::MtlParser mtlParser;
+            if (!parser.m_materialLib.empty())
+            {
+                // let's parse Mtl
+                std::wstring matFname = ToWstring(parser.m_materialLib);
+                BYTE* matData = FileUtils::LoadFile(matFname.c_str(), &dataSize);
+                if (!matData)
+                {
+                    matFname = StrExtractPath(filename) + L"\\" + StrExtractFilename(matFname);
+                    matData = FileUtils::LoadFile(matFname.c_str(), &dataSize);
+                }
+
+                if (matData && dataSize>0)
+                {
+                    std::vector<byte> matVData; matVData.resize(dataSize);
+                    memcpy(&matVData[0], matData, dataSize);
+                    SAFE_DELETE_ARRAY(matData);
+                    mtlParser.Parse(matVData);
+                }
+            }
+
+            // let's create materials and geometry
+            /*
+            for (auto m : mtlParser.m_materials)
+            {
+                Node* node = new Node();
+                node->name = m.first;                
+                builder.AddInstance(node);
+            }
+            */
+
+            // scene
+            {
+                Node* sceneNode = builder.m_model->CreateNode("OBJSceneNode");
+                builder.m_model->SetRoot(sceneNode);
+
+                for (auto& o : parser.m_objects)
+                {
+                    Node* node = builder.m_model->CreateNode(o.m_name.c_str());
+                    node->parent = sceneNode;
+                    node->transform.MakeIdentity();
+                    sceneNode->children.push_back(node);
+
+                    builder.Mesh_Reset();
+                    // source
+                    {
+                        auto& src = builder.m_mesh.source;
+                        src.pos.reserve(o.m_vertexBuffer.size());
+                        src.nor.reserve(o.m_vertexBuffer.size());
+                        src.tex.reserve(o.m_vertexBuffer.size());
+                        for (auto& v : o.m_vertexBuffer)
+                        {
+                            src.pos.push_back(float3(v.pos));
+                            src.nor.push_back(float3(v.normal));
+                            src.tex.push_back(float2(v.uv));
+                        }
+                    }
+
+                    // primitives
+                    {
+                        Geometry* geo = builder.m_model->CreateGeometry(o.m_name + "_geo");
+                        geo->material = builder.m_model->GetMaterial("!missing-mat!");
+                        node->geometries.push_back(geo);
+                        builder.Mesh_Begin(geo->name.c_str());
+                        auto& bmesh = builder.m_mesh;
+                        builder.Mesh_SetPrimType("TRIANGLES");
+                        auto& polyInfo = bmesh.poly;
+                        UINT stride = 0;
+                        builder.Mesh_ResetPolyInfo();
+                        polyInfo.hasNor = polyInfo.hasPos = polyInfo.hasTex = true;
+                        polyInfo.posOffset = 0;
+                        polyInfo.norOffset = 0;
+                        polyInfo.texOffset = 0;
+                        polyInfo.stride = 1;
+                        const size_t polycount = o.m_indexBuffer.size() / 3;
+                        polyInfo.vcount.reserve(polycount);
+                        for (size_t i = 0; i < polycount; ++i)
+                            polyInfo.vcount.push_back(3); // 3 vertices per poly
+                        for (size_t i = 0; i < o.m_indexBuffer.size(); ++i)
+                            polyInfo.indices.push_back(o.m_indexBuffer[i]); // indices
+                        builder.Mesh_AddPolys();
+                        geo->mesh = bmesh.mesh;
+                        builder.Mesh_End();
+                    }
+
+                }
+            }
+
         }
         builder.End();
         if (succeeded)
