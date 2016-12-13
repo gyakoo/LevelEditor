@@ -35,12 +35,13 @@ namespace LvEdEngine
     // 
     // Gets the filename from path
     // 
-    inline std::wstring StrExtractFilename(const std::wstring& str)
+    template<typename STR>
+    inline STR StrExtractFilename(const STR& str)
     {
-        auto p = str.find_last_of(L'/');
-        if (p == std::wstring::npos)
+        auto p = str.find_last_of(STR::value_type('/'));
+        if (p == STR::npos)
         {
-            p = str.find_last_of(L'\\');
+            p = str.find_last_of(STR::value_type('\\'));
             if (p == std::wstring::npos)
                 return str;
         }
@@ -98,21 +99,26 @@ namespace LvEdEngine
                 }
             }
 
-            // let's create materials and geometry
-            /*
+            // materials
             for (auto m : mtlParser.m_materials)
             {
-                Node* node = new Node();
-                node->name = m.first;                
-                builder.AddInstance(node);
+                Material* material = builder.m_model->CreateMaterial(m.first);
+                champ::MtlParser::Material* mat = m.second;
+
+                material->ambient = float4(mat->ka);
+                material->diffuse = float4(mat->kd);
+                material->specular = float4(mat->ks);
+                material->power = mat->ns;
+                material->texNames[TextureType::DIFFUSE] = StrExtractFilename(mat->map_kd);
+                material->texNames[TextureType::SPEC] = StrExtractFilename(mat->map_ks);
             }
-            */
 
             // scene
             {
                 Node* sceneNode = builder.m_model->CreateNode("OBJSceneNode");
                 builder.m_model->SetRoot(sceneNode);
 
+                // Add all objects to scenenode
                 for (auto& o : parser.m_objects)
                 {
                     Node* node = builder.m_model->CreateNode(o.m_name.c_str());
@@ -138,7 +144,7 @@ namespace LvEdEngine
                     // primitives
                     {
                         Geometry* geo = builder.m_model->CreateGeometry(o.m_name + "_geo");
-                        geo->material = builder.m_model->GetMaterial("!missing-mat!");
+                        geo->material = builder.m_model->GetMaterial(o.m_material);
                         node->geometries.push_back(geo);
                         builder.Mesh_Begin(geo->name.c_str());
                         auto& bmesh = builder.m_mesh;
