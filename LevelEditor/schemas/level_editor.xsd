@@ -315,6 +315,19 @@
     </xs:complexContent>
   </xs:complexType>
 
+  <xs:complexType name="spawnType">
+    <xs:annotation>
+      <xs:appinfo>
+        <LeGe.NativeType nativeName="CubeGob"/>
+        <scea.dom.editors name="Spawn" category="Champ" menuText="Game Objects/Spawn" description="Position where player can spawns"/>
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:complexContent>
+      <xs:extension base="shapeTestType" />
+    </xs:complexContent>
+  </xs:complexType>
+  
+
     <xs:complexType name="TorusTestType">
         <xs:annotation>
             <xs:appinfo>

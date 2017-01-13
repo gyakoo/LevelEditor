@@ -397,6 +397,25 @@ namespace LevelEditor
             cubeTestType.textureTransformAttribute = cubeTestType.Type.GetAttributeInfo("textureTransform");
             cubeTestType.componentChild = cubeTestType.Type.GetChildInfo("component");
 
+            spawnType.Type = getNodeType("gap", "spawnType");
+            spawnType.transformAttribute = spawnType.Type.GetAttributeInfo("transform");
+            spawnType.translateAttribute = spawnType.Type.GetAttributeInfo("translate");
+            spawnType.rotateAttribute = spawnType.Type.GetAttributeInfo("rotate");
+            spawnType.scaleAttribute = spawnType.Type.GetAttributeInfo("scale");
+            spawnType.pivotAttribute = spawnType.Type.GetAttributeInfo("pivot");
+            spawnType.nameAttribute = spawnType.Type.GetAttributeInfo("name");
+            spawnType.visibleAttribute = spawnType.Type.GetAttributeInfo("visible");
+            spawnType.lockedAttribute = spawnType.Type.GetAttributeInfo("locked");
+            spawnType.transformationTypeAttribute = spawnType.Type.GetAttributeInfo("transformationType");
+            spawnType.colorAttribute = spawnType.Type.GetAttributeInfo("color");
+            spawnType.emissiveAttribute = spawnType.Type.GetAttributeInfo("emissive");
+            spawnType.specularAttribute = spawnType.Type.GetAttributeInfo("specular");
+            spawnType.specularPowerAttribute = spawnType.Type.GetAttributeInfo("specularPower");
+            spawnType.diffuseAttribute = spawnType.Type.GetAttributeInfo("diffuse");
+            spawnType.normalAttribute = spawnType.Type.GetAttributeInfo("normal");
+            spawnType.textureTransformAttribute = spawnType.Type.GetAttributeInfo("textureTransform");
+            spawnType.componentChild = spawnType.Type.GetChildInfo("component");
+
             TorusTestType.Type = getNodeType("gap", "TorusTestType");
             TorusTestType.transformAttribute = TorusTestType.Type.GetAttributeInfo("transform");
             TorusTestType.translateAttribute = TorusTestType.Type.GetAttributeInfo("translate");
@@ -1063,6 +1082,28 @@ namespace LevelEditor
         }
 
         public static class cubeTestType
+        {
+            public static DomNodeType Type;
+            public static AttributeInfo transformAttribute;
+            public static AttributeInfo translateAttribute;
+            public static AttributeInfo rotateAttribute;
+            public static AttributeInfo scaleAttribute;
+            public static AttributeInfo pivotAttribute;
+            public static AttributeInfo nameAttribute;
+            public static AttributeInfo visibleAttribute;
+            public static AttributeInfo lockedAttribute;
+            public static AttributeInfo transformationTypeAttribute;
+            public static AttributeInfo colorAttribute;
+            public static AttributeInfo emissiveAttribute;
+            public static AttributeInfo specularAttribute;
+            public static AttributeInfo specularPowerAttribute;
+            public static AttributeInfo diffuseAttribute;
+            public static AttributeInfo normalAttribute;
+            public static AttributeInfo textureTransformAttribute;
+            public static ChildInfo componentChild;
+        }
+
+        public static class spawnType
         {
             public static DomNodeType Type;
             public static AttributeInfo transformAttribute;
